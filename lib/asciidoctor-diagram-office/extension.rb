@@ -42,25 +42,39 @@ module Asciidoctor
         options = {}
 
         unoconv = which(parent_block, 'unoconv', :raise_on_error => false)
+        inkscape = which(parent_block, 'inkscape', :raise_on_error => false)
+
         if unoconv
           OfficeServer.listen
           options[:page] = source.attr('page', '1', inherit_prefix)
-          run_unoconv(unoconv, source, format, options)
+          run_convert(unoconv, inkscape, source, format, options)
         end
       end
 
       private
-      def run_unoconv(unoconv, source, format, options = {})
+      def run_convert(unoconv, inkscape, source, format, options = {})
         # office document => PDF
-        pdf = generate_file(unoconv, 'unoconv', 'pdf', source.to_s) do |tool_path, input_path, output_path|
+        pdf = generate_file(unoconv, 'office', 'pdf', source.to_s) do |tool_path, input_path, output_path|
           args = [tool_path, '-f', 'pdf', '-e', "PageRange=#{options[:page]}-#{options[:page]}", '-o', Platform.native_path(output_path), Platform.native_path(input_path)]
           args
         end
         
         # PDF => target format
-        generate_file(unoconv, 'unoconv', format.to_s, pdf) do |tool_path, input_path, output_path|
-          args = [tool_path, '-f', format.to_s, '-o', Platform.native_path(output_path), Platform.native_path(input_path)]
-          args
+        if inkscape
+          generate_file(inkscape, 'pdf', format.to_s, pdf) do |tool_path, input_path, output_path|
+            case format.to_s
+            when 'png'
+              args = [tool_path, '-f', Platform.native_path(input_path), '-e', Platform.native_path(output_path)]
+            when 'svg'
+              args = [tool_path, '-f', Platform.native_path(input_path), '-l', Platform.native_path(output_path)]
+            end
+            args
+          end
+        else
+          generate_file(unoconv, 'pdf', format.to_s, pdf) do |tool_path, input_path, output_path|
+            args = [tool_path, '-f', format.to_s, '-o', Platform.native_path(output_path), Platform.native_path(input_path)]
+            args
+          end
         end
       end
 
@@ -93,8 +107,6 @@ module Asciidoctor
       include Office
 
       def create_source(parent, target, attributes)
-        p target
-        p apply_target_subs(parent, target)
         Office::Source.new(parent, apply_target_subs(parent, target), attributes)
       end
     end
