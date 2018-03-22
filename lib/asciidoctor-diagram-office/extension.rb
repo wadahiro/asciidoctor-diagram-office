@@ -1,3 +1,4 @@
+require 'timeout'
 require 'asciidoctor-diagram/extensions'
 require 'asciidoctor-diagram/util/cli'
 require 'asciidoctor-diagram/util/cli_generator'
@@ -8,10 +9,12 @@ module Asciidoctor
   module Diagram
     # @private
     module OfficeServer
-        def self.listen
+      def self.listen
         unless defined?(@office_listener) && @office_listener
-          pid = spawn('unoconv --listener')
+          pid = spawn('unoconv --listener > /dev/null 2>&1')
           thr = Process.detach(pid)
+          is_port_open?
+
           at_exit do
             begin
               Process.kill(:TERM, pid)
@@ -19,6 +22,23 @@ module Asciidoctor
             end
           end
           @office_listener = true
+        end
+      end
+
+      def self.is_port_open?()
+        begin
+          Timeout::timeout(10) do
+            begin
+              s = TCPSocket.open('localhost', 2002)
+              s.close
+              return true
+            rescue
+              sleep(1)
+              retry
+            end
+          end
+        rescue Timeout::Error
+          raise 'Failed to start office listener'
         end
       end
     end
@@ -99,7 +119,8 @@ module Asciidoctor
       include Office
 
       def create_source(parent, target, attributes)
-        Office::Source.new(parent, apply_target_subs(parent, target), attributes)
+        image_file = parent.normalize_system_path(target, parent.attr('imagesdir'))
+        Office::Source.new(parent, image_file, attributes)
       end
     end
 
@@ -107,7 +128,8 @@ module Asciidoctor
       include Office
 
       def create_source(parent, target, attributes)
-        Office::Source.new(parent, apply_target_subs(parent, target), attributes)
+        image_file = parent.normalize_system_path(target, parent.attr('imagesdir'))
+        Office::Source.new(parent, image_file, attributes)
       end
     end
   end
