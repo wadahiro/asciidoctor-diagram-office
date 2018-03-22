@@ -5,9 +5,9 @@ require File.expand_path('lib/asciidoctor-diagram-office/version',
 Gem::Specification.new do |s|
   s.name        = 'asciidoctor-diagram-office'
   s.version     = Asciidoctor::Diagram::Office::VERSION
-  s.date        = '2017-01-09'
-  s.summary     = "Asciidoctor processor to use office diagrams"
-  s.description = "An Asciidoctor extension to converts office document to SVG or PNG"
+  s.date        = '2018-03-22'
+  s.summary     = "Asciidoctor diagram extension, with support for Office documents"
+  s.description = "An Asciidoctor extension to convert office document to SVG or PNG"
   s.authors     = ["Hiroyuki Wada"]
   s.email       = 'wadahiro@gmail.com'
   s.files       = `git ls-files -z`.split("\x0")
